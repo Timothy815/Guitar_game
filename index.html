@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Guitar Game</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎸</text></svg>">
+  <style>
+    :root {
+      --bar-h: 48px;
+      --bg: #0b0b12;
+      --bar: #14131d;
+      --line: #2a2838;
+      --text: #b9b6c9;
+      --text-strong: #ffffff;
+      --accent: #c9a6ff;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { height: 100%; background: var(--bg); overflow: hidden; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+
+    nav {
+      height: var(--bar-h);
+      display: flex; align-items: center; gap: 4px;
+      padding: 0 12px;
+      background: var(--bar);
+      border-bottom: 1px solid var(--line);
+    }
+    .brand { color: var(--text-strong); font-weight: 600; font-size: 15px; margin-right: 12px; white-space: nowrap; }
+    nav a {
+      color: var(--text); text-decoration: none; font-size: 14px;
+      padding: 7px 14px; border-radius: 8px; white-space: nowrap;
+      transition: background .15s, color .15s;
+    }
+    nav a:hover { background: #1f1d2b; color: var(--text-strong); }
+    nav a[aria-current="page"] { background: #2a2540; color: var(--text-strong); box-shadow: inset 0 -2px 0 var(--accent); }
+    .hint { margin-left: auto; color: #6b6880; font-size: 12px; white-space: nowrap; }
+    @media (max-width: 560px) { .hint, .brand { display: none; } }
+
+    main { position: relative; height: calc(100% - var(--bar-h)); }
+    iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; display: none; background: var(--bg); }
+    iframe.active { display: block; }
+  </style>
+</head>
+<body>
+  <nav>
+    <span class="brand">🎸 Guitar Game</span>
+    <a href="#fretline" data-app="fretline">Fretline</a>
+    <a href="#flashcards" data-app="flashcards">Chromatic Flashcards</a>
+    <span class="hint">Alt+1 / Alt+2 to switch</span>
+  </nav>
+  <main>
+    <iframe id="frame-fretline" title="Fretline" data-src="fretline.html"></iframe>
+    <iframe id="frame-flashcards" title="Chromatic Flashcards" data-src="flashcards.html"></iframe>
+  </main>
+
+  <script>
+    // Each tool lives in its own iframe. Frames load on first visit and stay
+    // loaded afterwards, so switching tabs keeps each tool's in-progress state.
+    const APPS = ['fretline', 'flashcards'];
+    const DEFAULT = 'fretline';
+
+    function show(app) {
+      if (!APPS.includes(app)) app = DEFAULT;
+      for (const name of APPS) {
+        const frame = document.getElementById('frame-' + name);
+        const on = name === app;
+        if (on && !frame.src) frame.src = frame.dataset.src;
+        frame.classList.toggle('active', on);
+        const tab = document.querySelector(`nav a[data-app="${name}"]`);
+        if (on) tab.setAttribute('aria-current', 'page');
+        else tab.removeAttribute('aria-current');
+      }
+      document.title = document.getElementById('frame-' + app).title + ' · Guitar Game';
+      // Hand keyboard focus to the tool so its shortcuts work right away.
+      const frame = document.getElementById('frame-' + app);
+      setTimeout(() => frame.contentWindow && frame.contentWindow.focus(), 0);
+    }
+
+    function current() { return location.hash.slice(1) || DEFAULT; }
+
+    window.addEventListener('hashchange', () => show(current()));
+    function onKey(e) {
+      if (e.altKey && e.code === 'Digit1') { e.preventDefault(); location.hash = APPS[0]; }
+      if (e.altKey && e.code === 'Digit2') { e.preventDefault(); location.hash = APPS[1]; }
+    }
+    document.addEventListener('keydown', onKey);
+    // Also catch the shortcut while focus is inside a tool (same-origin frames).
+    for (const name of APPS) {
+      document.getElementById('frame-' + name).addEventListener('load', e => {
+        try { e.target.contentWindow.addEventListener('keydown', onKey); } catch (_) {}
+      });
+    }
+    show(current());
+  </script>
+</body>
+</html>
